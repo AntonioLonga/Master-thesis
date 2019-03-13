@@ -23,10 +23,25 @@ ___KKI (dataset folder)
 ___MIO (dataset folder)  
 ___MUTAG (dataset folder)  
 ___PROTEINS (dataset folder)  
-___import_data.ipynb (Notebook)  
-___K-mean_Evaluation.ipynb (Notebook)
+___Import_data.ipynb (Notebook)  
+___K-mean_Evaluation.ipynb (Notebook)  
+___KKN_Evaluation.ipynb (Notebook)
   
   
 ## Rootedtree.py  
 Is a python method that convert a Tree in a binary string, the idea comes from the book "Application of Graph Theory" of  Robin J.Wilson and Lowell W.Beineke.  
 The algorithm generate the code starting from the root of the tree, if the tree has no root, the center is used as root.
+
+
+## Import_data.ipynb (Notebook)
+It contains a method to import data. The format data comes from [Dourmund Universitat](https://ls11-www.cs.tu-dortmund.de/staff/morris/graphkerneldatasets).  
+The method produce a Networkx OBJ
+
+
+## K-mean_Evaluation.ipynb (Notebook)  
+It import the data, vectorize it using NSPDK, successively it use a SVD dimensionality reduction and finally it uses **K-mean** as classifier
+
+
+## KNN_Evaluation.ipynb (Notebook)  
+It import the data, vectorize it using NSPDK, successively it use a SVD dimensionality reduction and finally it uses **K-nearest neighbor** as classifier
+
