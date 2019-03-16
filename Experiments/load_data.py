@@ -1,12 +1,11 @@
-
 import numpy as np
 import networkx as nx
 import os
 
 
-"""convert a file into a list of pairs. each pairs is (Graph,label) """
+
 def load_data(folder_name):
-	
+    """convert a file into a list of pairs. each pairs is (Graph,label) """
     
     A_path =folder_name+"\\"+folder_name+"_A.txt"
     GraphIndicator_path =folder_name+"\\"+folder_name+"_graph_indicator.txt"
@@ -64,11 +63,13 @@ def load_data(folder_name):
 
 
 
-### INPUT: path node attributes:
-### RETURN: a dict of attributes (id : [att1, att2 ..,]) .
-###### the element on position i-th is the vector of the attributes of the node with id = i
 def import_node_attributes(path,n):
+    """
+	Take as input the path of node_attributes and return a dict (id : [att1, att2 ..,])
+    The element on position i-th is the vector of attributes of the node with id = i
     
+    If the path does not exist, the method return a dict with empty attribute array
+	"""
     mapping_node = {}
     if(os.path.exists(path)):
         file = open(path, "r") 
@@ -88,10 +89,14 @@ def import_node_attributes(path,n):
    
 
 
-### INPUT: path node attributes:
-### RETURN: a list of attributes.
-###### the element on position i-th is the vector of the attributes of the node with id = i
+   
 def import_edge_attributes(path,m):
+    """
+	Take as input the path of edge_attributes and return a list of list
+    The element on position i-th is the vector of attributes of the edge in position i 
+    
+    If the path does not exist, the method return a dict with empty attribute array
+	"""
     edges_attribute = []
     if (os.path.exists(path)):
         file = open(path, "r") 
@@ -108,12 +113,11 @@ def import_edge_attributes(path,m):
 
 
 
-
-
-### INPUT: path node LABEL:
-### RETURN: a dictionary of {id :label}.
-###### the element on position i-th is a string that corrisbonds to the label of the node with id = i
 def import_node_label(path,n):
+    """
+	Take as input the path of node_label and return a dict (id : Node_name)
+    The element on position i-th is the name of the node with id = i 
+	"""
     mapping_node = {}
     if(os.path.exists(path)):
         file = open(path, "r") 
@@ -135,6 +139,10 @@ def import_node_label(path,n):
 ### RETURN: a list of edges labels.
 ###### the element on position i-th is a string that corrisbonds to the label of the edge with id = i
 def import_edge_label(path,m):
+    """
+	Take as input the path of edge_label and return a list of lists
+    The element on position i-th is the name of the edge in position i 
+	"""
     edges_label = []
     if (os.path.exists(path)):
         file = open(path, "r") 
@@ -148,12 +156,15 @@ def import_edge_label(path,m):
     return (edges_label)
 	
 	
-	
-	
-#### explore folder:
-
 
 def explore_folder(folder_name):
+    """
+	Take as input the name of the folder and verify if nodes attributes, nodes label,
+    edges attributes and edge labels are present.
+     
+    It returns a list of list. each sub list contains respectively
+    node_att,node_lab,edge_att,edge_lab,graph_lab
+	"""
     
     A_path =folder_name+"\\"+folder_name+"_A.txt"
     GraphIndicator_path =folder_name+"\\"+folder_name+"_graph_indicator.txt"
