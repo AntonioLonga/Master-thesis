@@ -2,7 +2,72 @@ import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
 class Graph_generator:
+    def gen_set_easy(n_graphs,n_nodes,prob_edge,depth=1,seed=None):
+        '''
+        This method generate two set of n_graphs/2, each graph has n_nodes with prob_edge,
+        the generated graphs are EASY to separate
+        It retun a pair (graphs, label)
+        '''
+        
+        g3 = Graph_generator.gen_graph(n_nodes,prob_edge,seed)
+        g4 = Graph_generator.gen_graph(n_nodes,prob_edge,seed)
 
+        # create two sets starting from the same graph
+        graphs3 = Graph_generator.gen_similar_graphs(g3,depth)
+        graphs4 = Graph_generator.gen_similar_graphs(g4,depth)
+        # take only 500 graphs
+        n_graphs = int(n_graphs/2)
+        
+        np.random.shuffle(graphs3)
+        np.random.shuffle(graphs4)
+        graphs3 = graphs3[0:n_graphs]
+        graphs4 = graphs4[0:n_graphs]
+
+        #add the labels
+        graphs = []
+        labels = []
+        for g in graphs3:
+            graphs.append(g)
+            labels.append(0)
+        for g in graphs4:
+            graphs.append(g)
+            labels.append(1)
+            
+        return (graphs,labels)
+
+    def gen_set_hard(n_graphs,n_nodes,prob_edge,depth=1,seed=None):
+        '''
+        This method generate two set of n_graphs/2, each graph has n_nodes with prob_edge,
+        the generated graphs are HARD to separate
+        It retun a pair (graphs, label)
+        '''
+        
+        g3 = Graph_generator.gen_graph(n_nodes,prob_edge,seed)
+
+        # create two sets starting from the same graph
+        graphs3 = Graph_generator.gen_similar_graphs(g3,depth)
+        graphs4 = Graph_generator.gen_similar_graphs(g3,depth)
+        # take only 500 graphs
+        n_graphs = int(n_graphs/2)
+        
+        np.random.shuffle(graphs3)
+        np.random.shuffle(graphs4)
+        graphs3 = graphs3[0:n_graphs]
+        graphs4 = graphs4[0:n_graphs]
+
+        #add the labels
+        graphs = []
+        labels = []
+        for g in graphs3:
+            graphs.append(g)
+            labels.append(0)
+        for g in graphs4:
+            graphs.append(g)
+            labels.append(1)
+            
+        return (graphs,labels)
+
+        
     
     '''
     Generate similar graphs, take in input a graph, and produce a list of graphs
