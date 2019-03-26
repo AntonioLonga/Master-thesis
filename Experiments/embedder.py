@@ -1,39 +1,26 @@
 class Embedder:
-    estimator_graph_to_high = None
-    estimator_high_to_medium = None
-    estimator_medium_to_small = None
-    n_estimator = 2
     
-    def __init__(self, graph_to_high, high_to_medium, medium_to_small=None):
-        self.estimator_graph_to_high = Model(graph_to_high)
-        self.estimator_high_to_medium = Model(high_to_medium)
-        self.estimator_medium_to_small = Model(medium_to_small)
-        if (medium_to_small != None):
-            self.n_estimator = 3
+    estimatros = []
+    
+    def __init__(self, estim):
+        self.estimatros = estim
         
     def fit(self,X,y):
-        
-        if (self.n_estimator == 3):
-            X_high = self.estimator_graph_to_high.fit(X,y).transform(X)
-            X_medium = self.estimator_high_to_medium.fit(X_high,y).transform(X_high)
-            X_small = self.estimator_medium_to_small.fit(X_medium,y)
-        else:
-            X_high = self.estimator_graph_to_high.fit(X,y).transform(X)
-            X_medium = self.estimator_high_to_medium.fit(X_high,y)
-        
-        return(self)
-    
+        X_res = X
+        for e in range(0,len(self.estimatros)):
+            if (e == len(self.estimatros)-1):
+                self.estimatros[e].fit(X_res,y)
+                return(self)
+            else:
+                X_res = self.estimatros[e].fit(X_res,y).transform(X_res)
+
     def transform(self,X):
+        X_res = X
         
-        if (self.n_estimator == 3):
-            X_high = self.estimator_graph_to_high.transform(X)
-            X_medium = self.estimator_high_to_medium.transform(X_high)
-            X_small = self.estimator_medium_to_small.transform(X_medium)
-        else:
-            X_high = self.estimator_graph_to_high.transform(X)
-            X_small = self.estimator_high_to_medium.transform(X_high)
-        
-        return(X_small)
+        for e in self.estimatros:
+            X_res = e.transform(X_res)
+            
+        return(X_res)
         
 
 class Model:
