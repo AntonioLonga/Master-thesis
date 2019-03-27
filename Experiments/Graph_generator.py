@@ -1,103 +1,127 @@
 import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
-class Graph_generator:
+from eden import display
+import warnings
+
+class Graph_Generator:
+    n_graphs = None
+    degree = None
+    seed = None
     
-    
-    def gen_set(n_graphs,n_nodes,prob_edge=0.5, n_node_lab=None,n_edge_lab=None, seed=None):
+    def __init__(self,n_graphs,degree=4,seed=None):        
+        self.n_graphs = n_graphs
+        self.degree = degree
         
-        g1 = Graph_generator.gen_graph(n_nodes,prob_edge=0.5, n_node_lab=None,n_edge_lab=None, seed=None)
-        g2 = Graph_generator.gen_graph(n_nodes,prob_edge=0.5, n_node_lab=None,n_edge_lab=None, seed=None)
-        
-        if (n_node_lab == None):
-            n_node_lab = n_nodes
-        if (n_edge_lab == None):
-            n_edge_lab = n_nodes
-        
-        graphs = []
-        labels = []
-        
-        for i in range(0,int(n_graphs/2)):
-            g = Graph_generator.flip_edges(g1)
-            g = Graph_generator.gen_change_edge_label(g,n_edge_lab)
-            g = Graph_generator.gen_change_node_label(g,n_node_lab)
+        if (seed == None):
+            np.random.seed(None)
+        else:
+            np.random.seed(seed)
+            self.seed = seed
             
-            graphs.append(g)
+        
+    def generate_set(self,g1,g2,
+                     node_alph_g1, edge_alph_g1,
+                     node_alph_g2, edge_alph_g2,
+                     dept_g1 = 1,dept_g2 = 1,
+                     plot = True):
+        
+        class_size = int(self.n_graphs/2)
+        
+        graphs=[]
+        labels=[]
+        for i in range(0,class_size):
+            graphs.append(self.perturb(g1,node_alph_g1,edge_alph_g1,dept_g1))
             labels.append(0)
         
-        for i in range(0,int(n_graphs/2)):
-            g = Graph_generator.flip_edges(g2)
-            g = Graph_generator.gen_change_edge_label(g,n_edge_lab)
-            g = Graph_generator.gen_change_node_label(g,n_node_lab)
-            
-            graphs.append(g)
+        for i in range(0,class_size):
+            graphs.append(self.perturb(g2,node_alph_g2,edge_alph_g2,dept_g2))
             labels.append(1)
-
-        return(graphs,labels)
-
-    def gen_change_edge_label(graph,n_label):
-
-        new_graph = graph.copy()
-        for n in graph.edges(data=True):
-            lab = np.random.randint(n_label)
-            new_graph.add_edge(n[0],n[1],label=lab)
-        return (new_graph)
-
-    '''
-    From a given list of grphs, change randomly the label of the node.
-    at each etaration only ONLY one label is changed
-    '''
-    def gen_change_node_label(graph,n_label):
-
-        new_graph = graph.copy()
-        for n in graph.nodes(data=True):
-            lab = np.random.randint(n_label)
-            new_graph.add_node(n[0],label=str(lab))
-        return (new_graph)
-
-
-    def myplot(G,n_label='label'):
-        pos = nx.spring_layout(G,seed =4)
-
-        nx.draw(G, pos)
-        node_labels = nx.get_node_attributes(G,n_label)
-        nx.draw_networkx_labels(G, pos, labels = node_labels)
-        edge_labels = nx.get_edge_attributes(G,'')
-        nx.draw_networkx_edge_labels(G, pos, labels = edge_labels)
-
-        plt.show()
-        
-    '''
-    Generate a CONNECTED graph with random node and edge labels
-    return a nx graph
-    '''
-    def gen_graph(n_nodes,prob_edge=0.5, n_node_lab=None,n_edge_lab=None, seed=None):
-        g = nx.random_geometric_graph(n_nodes,prob_edge,seed=seed)
-        
-        if(n_node_lab == None):
-            n_node_lab = n_nodes
             
-        if (n_edge_lab == None):
-            n_edge_lab = len(g.edges())
-        
-        for n in g.nodes():
-            lab = np.random.randint(n_node_lab)
-            g.add_node(n,label=lab)
-            del g.node[n]['pos']
-        for e in g.edges():
-            att1 = np.random.randint(n_edge_lab)
-            g.add_edge(e[0],e[1],label=att1)
-                      
-        if (nx.is_connected(g)):
-            return(g) # is connected, return it
-        else:
-            if (seed == None):  # if seed is not specified, try a random one
-                seed=np.random.randint(100)
-            else:
-                seed = seed + 1 # increment seed and try again
-            return(Graph_generator.gen_graph(n_nodes,prob_edge,n_node_lab,n_edge_lab, seed))
+        if (plot):
+            self.plot_alphabets(node_alph_g1,edge_alph_g1,node_alph_g2,edge_alph_g2)
+            
+        return(graphs, labels)
     
-    def flip_edges(g):
+    # ****
+    def perturb(self, graph,node_alph, edge_alph,n_exchange=1):
+        graph = self.change_edge_label(graph,edge_alph)
+        graph = self.change_node_label(graph,node_alph)
+        graph = self.edge_exchange_n_times(graph, n_exchange)
+        
+        return(graph)
+        
+    # ****  
+    def generate(self,n_nodes,node_alph_start,edge_alph_start,node_alph_end=None,edge_alph_end=None,seed=None):
+        if (seed == None):
+            seed = np.random.randint(100)
+        g = nx.random_regular_graph(self.degree,n_nodes,seed)
+        
+        if (node_alph_end == None):
+            node_alph = np.arange(node_alph_start,node_alph_start + n_nodes,1)
+        else:
+            node_alph = np.arange(node_alph_start,node_alph_end,1)
+
+        if (edge_alph_end == None):
+            edge_alph = np.arange(edge_alph_start,edge_alph_start+len(g.edges()),1)
+        else:
+            edge_alph = np.arange(edge_alph_start,edge_alph_end)
+                
+        if (nx.is_connected(g)):
+            g = self.add_node_labels(g, node_alph)
+            g = self.add_edge_labels(g, edge_alph)
+            return(g,node_alph,edge_alph)
+        else:
+            return(self.generate())
+        
+    # ****
+    def add_node_labels(self,g,node_alph):
+        np.random.shuffle(node_alph)
+        for n in g.nodes():
+            c = np.random.randint(len(node_alph))
+            g.node[n]['label']=node_alph[c]
+        return(g)
+    
+    # ****    
+    def add_edge_labels(self,g,edge_alph):
+        np.random.shuffle(edge_alph)
+        for e in g.edges():
+            c = np.random.randint(len(edge_alph))
+            g.add_edge(e[0],e[1],label=edge_alph[c])
+
+        return(g)
+    
+    
+    # ****
+    def change_edge_label(self,graph,edge_alph):
+        g = graph.copy()
+        np.random.shuffle(edge_alph)
+        for n in g.edges(data=True):
+            lab = edge_alph[np.random.randint(len(edge_alph))]
+            g[n[0]][n[1]]['label'] = lab
+        return (g)
+
+    # ****
+    def change_node_label(self,graph, node_alph):
+        g = graph.copy()
+        np.random.shuffle(node_alph)
+        for n in g.nodes():
+            c = np.random.randint(len(node_alph))
+            lab = node_alph[c]
+            g.node[n]['label'] = str(lab)
+            
+        return (g)
+    
+    
+    def edge_exchange_n_times(self,g,n_times):
+        g_new = g.copy()
+        for i in range(0,n_times):
+            g_new = self.edge_exchange(g_new)
+            
+        return(g_new)
+
+     
+    def edge_exchange(self,g):
         edges =list(g.edges())
         flag = True
         c = 0
@@ -122,10 +146,41 @@ class Graph_generator:
                         flag = False
                         
         return(g_new)
+    
+    def draw_graph_set(self,graphs, n, n_graphs_per_line=5):
+        
+        class_size = int(n/2)
+        b=graphs[0:class_size]
+        c=graphs[-class_size:]
+        g = b + c
+        warnings.filterwarnings('ignore')
+        display.draw_graph_set(g,n_graphs_per_line=n_graphs_per_line,edge_label='label')
+    
+    
+    
+  
 
-    def flip_edge_n_times(g,times):
-        g_new = g.copy()
-        for i in range(0,times):
-            g_new = Graph_generator.flip_edges(g_new)
-            
-        return(g_new)
+    def plot_alphabets(self,node_alph_1,edge_alph_1,node_alph_2,edge_alph_2):
+
+        plt.figure(figsize=(8, 1))
+
+        aa = np.zeros(len(node_alph_1))
+        bb = np.zeros(len(node_alph_2))+0.1
+
+        plt.subplot(121)
+        plt.plot(node_alph_1,aa,linewidth=10, label="graph 1")
+        plt.plot(node_alph_2,bb,linewidth=10, label="graph 2")
+        plt.ylim(-0.1,0.3)
+        plt.title("Node alphabet")
+
+
+        aa = np.zeros(len(edge_alph_1))
+        bb = np.zeros(len(edge_alph_2))+0.1
+
+        plt.subplot(122)
+        plt.plot(edge_alph_1,aa,linewidth=10, label="graph 1")
+        plt.plot(edge_alph_2,bb,linewidth=10, label="graph 2")
+        plt.ylim(-0.1,0.3)
+        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        plt.title("Edge alphabet")
+        plt.show()
