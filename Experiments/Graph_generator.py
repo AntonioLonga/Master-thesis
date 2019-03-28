@@ -30,7 +30,7 @@ class Graph_Generator:
     def generate_set(self,g1,g2,
                      node_alph_g1, edge_alph_g1,
                      node_alph_g2, edge_alph_g2,
-                     dept_g1 = 1,dept_g2 = 1,
+                     pert_times_g1 = 1,pert_times_g2 = 1,
                      plot = True):
         '''Given a graph, generate a set of similar graphs.
         
@@ -43,8 +43,8 @@ class Graph_Generator:
             edge_alph_g1 ([int]) : edge alphabet of graph g1
             node_alph_g2 ([int]) : node alphabet of graph g2
             edge_alph_g2 ([int]) : edge alphabet of graph g2
-            dept_g1 (int)[1] : how many edges of g1 exchange
-            dept_g2 (int)[1] : how many edges of g2 exchange
+            pert_times_g1 (int)[1] : how many perturbation on g1 
+            pert_times_g1 (int)[1] : how many perturbation on g2
             
         Returns:
             (graphs, labels)
@@ -56,11 +56,11 @@ class Graph_Generator:
         graphs=[]
         labels=[]
         for i in range(0,class_size):
-            graphs.append(self.perturb(g1,node_alph_g1,edge_alph_g1,dept_g1))
+            graphs.append(self.perturb(g1,node_alph_g1,edge_alph_g1,pert_times_g1))
             labels.append(0)
         
         for i in range(0,class_size):
-            graphs.append(self.perturb(g2,node_alph_g2,edge_alph_g2,dept_g2))
+            graphs.append(self.perturb(g2,node_alph_g2,edge_alph_g2,pert_times_g2))
             labels.append(1)
             
         if (plot):
@@ -69,7 +69,7 @@ class Graph_Generator:
         return(graphs, labels)
     
     
-    def perturb(self, graph,node_alph, edge_alph,n_exchange=1):
+    def perturb(self, graph,node_alph, edge_alph,times):
         '''Given a graph, change edge labels, change node labels and exchange an edge.
               
         Args:
@@ -82,22 +82,22 @@ class Graph_Generator:
             (graph)
         
         '''
-        graph = self.change_edge_label(graph,edge_alph)
-        graph = self.change_node_label(graph,node_alph)
-        graph = self.edge_exchange_n_times(graph, n_exchange)
+        g = graph
+        for i in range(0,times):
+            g = self.change_edge_label(g,edge_alph)
+            g = self.change_node_label(g,node_alph)
+            g = self.edge_exchange(g)
         
-        return(graph)
+        return(g)
         
         
-    def generate(self,n_nodes,node_alph_start,edge_alph_start,node_alph_end=None,edge_alph_end=None,seed=None):
+    def generate(self,n_nodes,node_alph_end,edge_alph_end,seed=None):
         '''Generate a graph with node and edge labels
         
         If node/edge_alph_end is None the is used the number of nodes and the number of edges
                 
         Args:
             n_nodes (int): number of nodes of the graph
-            node_alph_start (int): an integer that represents the start of the node alphabet 
-            edge_alph_start (int): an integer that represents the start of the edge alphabet
             node_alph_end (int = None): an integer that represents the end of the node alphabet
             edge_alph_end (int = None): an integer that represents the end of the edge alphabet
             seed (int = None): seed for np.random.
@@ -109,15 +109,12 @@ class Graph_Generator:
             seed = np.random.randint(100)
         g = nx.random_regular_graph(self.degree,n_nodes,seed)
         
-        if (node_alph_end == None):
-            node_alph = np.arange(node_alph_start,node_alph_start + n_nodes,1)
-        else:
-            node_alph = np.arange(node_alph_start,node_alph_end,1)
 
-        if (edge_alph_end == None):
-            edge_alph = np.arange(edge_alph_start,edge_alph_start+len(g.edges()),1)
-        else:
-            edge_alph = np.arange(edge_alph_start,edge_alph_end)
+        node_alph = np.arange(0,node_alph_end,1)
+        edge_alph = np.arange(0,edge_alph_end,1)
+        
+        np.random.shuffle(node_alph)
+        np.random.shuffle(edge_alph)
                 
         if (nx.is_connected(g)):
             g = self.add_node_labels(g, node_alph)
@@ -128,7 +125,7 @@ class Graph_Generator:
         
         
     def add_node_labels(self,g,node_alph):
-        '''Add labels to nodes of a grphs
+        '''Add labels to nodes of a graph
         
         Args:
             graph (nx.graph): a graph
@@ -145,7 +142,7 @@ class Graph_Generator:
         return(g)
     
     def add_edge_labels(self,g,edge_alph):
-        '''Add labels to edges of a grphs
+        '''Add labels to edges of a graph
         
         Args:
             graph (nx.graph): a graph
@@ -163,7 +160,7 @@ class Graph_Generator:
     
 
     def change_edge_label(self,graph,edge_alph):
-        '''Change all the edge labels of a grphs
+        '''Change one random label of one edge 
         
         Args:
             graph (nx.graph): a graph
@@ -173,15 +170,19 @@ class Graph_Generator:
             a graph
         '''
         g = graph.copy()
-        np.random.shuffle(edge_alph)
-        for n in g.edges(data=True):
-            lab = edge_alph[np.random.randint(len(edge_alph))]
-            g[n[0]][n[1]]['label'] = lab
+        edges = list(graph.edges())
+        
+        pos_e = np.random.randint(len(edges))
+        e = edges[pos_e]
+        c = np.random.randint(len(edge_alph))
+        lab = edge_alph[c]
+        g[e[0]][e[1]]['label'] = lab
+        
         return (g)
 
     
     def change_node_label(self,graph, node_alph):
-        '''Change all the node labels of a grphs
+        '''Change one random label of a node 
         
         Args:
             graph (nx.graph): a graph
@@ -190,33 +191,14 @@ class Graph_Generator:
         Returns:
             a graph
         '''
+        
         g = graph.copy()
-        np.random.shuffle(node_alph)
-        for n in g.nodes():
-            c = np.random.randint(len(node_alph))
-            lab = node_alph[c]
-            g.node[n]['label'] = str(lab)
-            
+        n = np.random.randint(len(graph.nodes()))
+        c = np.random.randint(len(node_alph))
+        lab = node_alph[c]
+        g.node[n]['label'] = lab
+        
         return (g)
-    
-    
-    def edge_exchange_n_times(self,g,n_times):
-        '''Exchange two edges n_times times.
-        
-        Call edge_exchange n_times times.
-        
-        Args:
-            g (nx.graph): a graph
-            n_times(int): number of times to repeat edge_exchange
-        
-        Returns:
-            a graph
-        '''
-        g_new = g.copy()
-        for i in range(0,n_times):
-            g_new = self.edge_exchange(g_new)
-            
-        return(g_new)
 
      
     def edge_exchange(self,g):
@@ -312,3 +294,4 @@ class Graph_Generator:
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         plt.title("Edge alphabet")
         plt.show()
+
