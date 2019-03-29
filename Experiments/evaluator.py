@@ -1,31 +1,44 @@
-from sklearn.neighbors import KNeighborsClassifier
+
 from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 import numpy as np
 
 class Evaluator:
     '''
-    This class use K neighbours Classifier to valuate an embedding. 
-    It has a construcctor, that thakes in input the number of neighbour, and
-    a method that compute accuracy percision recall and f1 score using 
-    n_folds cross validation.
-    '''
-    classifier = None
-    n_neighbors = 0
+    This class evaluate an embedding
     
-    def __init__(self,n_neighbors=1):        
-        self.classifier = KNeighborsClassifier(n_neighbors=n_neighbors)
-        self.n_neighbors = n_neighbors
+    Attributes:
+        classifiers ([]):  a list of clasisfier
+        
+    Example:
+    
+        mod1 = RandomForestClassifier(n_estimators=1)
+        mod2 = KNeighborsClassifier(n_neighbors=1)
+        
+        Evaluatot([mod1,mod2])
+    '''
+    
+    classifier = None
+    
+    def __init__(self, classif):        
+        self.classifier = classif
 
 
     def performance_with_kfold(self,X,y,n_folds=10):
         '''
-        It takes in input a set X and it's label and the number of folds (default = 10)
-        It return an array of lists [accuracy, precision, recall, f1] 
-        length n_folds.
+        Compute some metrics on a dataset in k-fold corss validations.
+        
+        Args: 
+            X ([[int,..int]..[int,..int]]) : Point to classify
+            y ([int]) : real targhet
+            n_folds (int)[10] : number of folds
+            
+        Return:
+            [accuracy,precision,recall,f1] : array of array
         '''
 
-        classif = KNeighborsClassifier(n_neighbors = self.n_neighbors)
+        classif = self.classifier
+
         
         accuracy_train = list(cross_val_score(classif ,X,y, cv=n_folds, 
                                          scoring = metrics.make_scorer(metrics.accuracy_score)))
