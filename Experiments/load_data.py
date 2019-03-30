@@ -1,23 +1,16 @@
-import numpy as np
-import networkx as nx
-import os
 
-
-
+"""convert a file into a list of pairs. each pairs is :Graphs and labels """
 def load_data(folder_name):
-    """convert a file into a list of pairs. each pairs is (Graph,label) """
     
-    A_path =folder_name+"\\"+folder_name+"_A.txt"
-    GraphIndicator_path =folder_name+"\\"+folder_name+"_graph_indicator.txt"
+        
+    path_files = os.path.join(os.getcwd(), folder_name)
+    A_path = os.path.join(path_files,(folder_name + '_A.txt'))
+    graphIndicator_path = os.path.join(path_files,(folder_name + "_graph_indicator.txt"))
+
     
-    files = explore_folder(folder_name)
-    #extract informations from files
-    att_node = files[0]
-    label_node = files[1]
-    att_edge = files[2]
-    label_edge = files[3]
     
-    label_graph = files[4]
+    
+    att_node, label_node, att_edge, label_edge, label_graph = explore_folder(folder_name)
 
 
     ### Create a Huge graph of disconnected components
@@ -36,7 +29,7 @@ def load_data(folder_name):
 
     
     # load graph_indicator file and compute it
-    file = open(GraphIndicator_path, "r") 
+    file = open(graphIndicator_path, "r") 
     # import the file in an array
     graph_indicator = []
     for t in file:
@@ -51,25 +44,25 @@ def load_data(folder_name):
     
     # split the graph in subgraphs according to graph_indicator file and store it in graphs
     graphs = []
+    labels = []
     initial = 1
     for i in range(0,len(indices)):
         nodes = np.arange(initial,indices[i])
         initial = indices[i]
-        graphs.append([G.subgraph(nodes),label_graph[i]])
+        graphs.append(G.subgraph(nodes))
+        labels.append(label_graph[i])
         
         
-    return (graphs)
+    return (graphs, labels)
 
 
 
 
+### INPUT: path node attributes:
+### RETURN: a dict of attributes (id : [att1, att2 ..,]) .
+###### the element on position i-th is the vector of the attributes of the node with id = i
 def import_node_attributes(path,n):
-    """
-	Take as input the path of node_attributes and return a dict (id : [att1, att2 ..,])
-    The element on position i-th is the vector of attributes of the node with id = i
     
-    If the path does not exist, the method return a dict with empty attribute array
-	"""
     mapping_node = {}
     if(os.path.exists(path)):
         file = open(path, "r") 
@@ -89,14 +82,10 @@ def import_node_attributes(path,n):
    
 
 
-   
+### INPUT: path node attributes:
+### RETURN: a list of attributes.
+###### the element on position i-th is the vector of the attributes of the node with id = i
 def import_edge_attributes(path,m):
-    """
-	Take as input the path of edge_attributes and return a list of list
-    The element on position i-th is the vector of attributes of the edge in position i 
-    
-    If the path does not exist, the method return a dict with empty attribute array
-	"""
     edges_attribute = []
     if (os.path.exists(path)):
         file = open(path, "r") 
@@ -113,11 +102,12 @@ def import_edge_attributes(path,m):
 
 
 
+
+
+### INPUT: path node LABEL:
+### RETURN: a dictionary of {id :label}.
+###### the element on position i-th is a string that corrisbonds to the label of the node with id = i
 def import_node_label(path,n):
-    """
-	Take as input the path of node_label and return a dict (id : Node_name)
-    The element on position i-th is the name of the node with id = i 
-	"""
     mapping_node = {}
     if(os.path.exists(path)):
         file = open(path, "r") 
@@ -139,10 +129,6 @@ def import_node_label(path,n):
 ### RETURN: a list of edges labels.
 ###### the element on position i-th is a string that corrisbonds to the label of the edge with id = i
 def import_edge_label(path,m):
-    """
-	Take as input the path of edge_label and return a list of lists
-    The element on position i-th is the name of the edge in position i 
-	"""
     edges_label = []
     if (os.path.exists(path)):
         file = open(path, "r") 
@@ -154,45 +140,44 @@ def import_edge_label(path,m):
         edges_label = np.zeros(m)
         
     return (edges_label)
-	
-	
+
+#### explore folder:
+
 
 def explore_folder(folder_name):
-    """
-	Take as input the name of the folder and verify if nodes attributes, nodes label,
-    edges attributes and edge labels are present.
-     
-    It returns a list of list. each sub list contains respectively
-    node_att,node_lab,edge_att,edge_lab,graph_lab
-	"""
+
     
-    A_path =folder_name+"\\"+folder_name+"_A.txt"
-    GraphIndicator_path =folder_name+"\\"+folder_name+"_graph_indicator.txt"
-    Graph_labels =folder_name+"\\"+folder_name+"_graph_labels.txt"
+    path_files = os.path.join(os.getcwd(), folder_name)
 
-    nodeAtt_path = folder_name+"\\"+folder_name+"_node_attributes.txt"
-    nodeLabel_path = folder_name+"\\"+folder_name+"_node_labels.txt"
-    edgeAtt_path = folder_name+"\\"+folder_name+"_edge_attributes.txt"
-    edgeLabel_path = folder_name+"\\"+folder_name+"_edge_labels.txt"
+    A_path = os.path.join(path_files,(folder_name + '_A.txt'))
 
-    info = [folder_name+"\\"+folder_name+"_node_attributes.txt", folder_name+"\\"+folder_name+"_node_labels.txt",
-           folder_name+"\\"+folder_name+"_edge_attributes.txt", folder_name+"\\"+folder_name+"_edge_labels.txt"]
+    graphIndicator_path = os.path.join(path_files,(folder_name + "_graph_indicator.txt"))
+    graph_labels = os.path.join(path_files,(folder_name + "_graph_labels.txt"))
+
+    nodeAtt_path = os.path.join(path_files,(folder_name + "_node_attributes.txt"))
+    nodeLabel_path = os.path.join(path_files,(folder_name + "_node_labels.txt"))
+    edgeAtt_path = os.path.join(path_files,(folder_name + "_edge_attributes.txt"))
+    edgeLabel_path = os.path.join(path_files,(folder_name + "_edge_labels.txt"))
+
+
+
     # m = number of edges
     m = 0
     for line in open(A_path).readlines(  ): m += 1
+
     # n = number of nodes
     n = 0
-    for line in open(GraphIndicator_path).readlines(  ): n += 1
+    for line in open(graphIndicator_path).readlines(  ): n += 1
+
     # import the label of the graphs
     graph_lab = []
-    file = open(Graph_labels, "r") 
+    file = open(graph_labels, "r") 
     for t in file:
         t = int(t)
         if (t == -1):
             t = 0
         graph_lab.append(t)
     file.close()
-	
 
     ### import file, if they does not exist return n/m elements of ""
     node_att = import_node_attributes(nodeAtt_path,n)
@@ -201,6 +186,4 @@ def explore_folder(folder_name):
     edge_att = import_edge_attributes(edgeAtt_path,m)
     edge_lab = import_edge_label(edgeLabel_path,m)
 
-    return([node_att,node_lab,edge_att,edge_lab,graph_lab])
-
-
+    return(node_att,node_lab,edge_att,edge_lab,graph_lab)
