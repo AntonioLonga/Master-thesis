@@ -66,9 +66,35 @@ def load_data(folder_name):
         initial = indices[i]
         graphs.append(G.subgraph(nodes))
         labels.append(label_graph[i])
-        
+       
+    graphs = add_info_to_nodes(graphs)
         
     return (graphs, labels)
+
+
+def add_info_to_nodes(graphs):
+    '''add label, degree and clustering coefficient to nodes attributes
+    
+  
+    Args:
+        graphs ([nx.graph]): an array of graphs
+        
+    Returns:
+        [nx.graph]: a list of graphs
+    
+    '''   
+    for g in graphs:
+        for i in g.nodes():
+            degree = g.degree(i)
+            clust_coeff = nx.clustering(g,i)
+            label = int(g.nodes[i]['label'])
+            vec = g.nodes[i]['vec'] 
+            if (vec == ''):
+                g.nodes[i]['vec'] = [label,degree,clust_coeff]
+            else:
+                g.nodes[i]['vec'] = vec + [label,degree,clust_coeff]
+   
+    return(graphs)
 
 
 
