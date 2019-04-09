@@ -14,9 +14,11 @@ class Embedder:
         
     '''
     estimatros = []
+    name=""
     
-    def __init__(self, estim):
+    def __init__(self, estim,name=""):
         self.estimatros = estim
+        self.name = name
         
     def fit(self,X,y):
         '''fit the data on the models.
