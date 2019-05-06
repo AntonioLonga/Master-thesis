@@ -1,8 +1,10 @@
 import numpy as np
 import networkx as nx
+from spektral.utils import conversion
+from keras.utils import to_categorical
 import os
 
-def load_data(folder_name):
+def load_data(folder_name, output_type="networkx",one_hot=False):
     '''Import a set of graphs.
     
     The data comes from https://ls11-www.cs.tu-dortmund.de/staff/morris/graphkerneldatasets.
@@ -68,9 +70,21 @@ def load_data(folder_name):
         labels.append(label_graph[i])
        
     graphs = add_info_to_nodes(graphs)
-        
-    return (graphs, labels)
+    
+    if (one_hot == True):
+        labels = to_categorical(labels)
 
+    if (output_type == "networkx"):
+        return (graphs, labels)
+
+    if (output_type == "numpy"):
+
+        adjs =conversion.nx_to_adj(graphs)
+        nodes_f = conversion.nx_to_node_features(graphs, keys=['vec'])
+        edges_f = conversion.nx_to_edge_features(graphs, keys=['vec']) 
+
+        return (adjs,nodes_f,edges_f,labels)
+    _
 
 def add_info_to_nodes(graphs):
     '''add label, degree and clustering coefficient to nodes attributes
