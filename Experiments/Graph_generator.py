@@ -138,7 +138,7 @@ class Graph_Generator:
         np.random.shuffle(node_alph)
         for n in g.nodes():
             c = np.random.randint(len(node_alph))
-            g.node[n]['label']=node_alph[c]
+            g.node[n]['vec']=[node_alph[c]]
         return(g)
     
     def add_edge_labels(self,g,edge_alph):
@@ -154,7 +154,7 @@ class Graph_Generator:
         np.random.shuffle(edge_alph)
         for e in g.edges():
             c = np.random.randint(len(edge_alph))
-            g.add_edge(e[0],e[1],label=edge_alph[c])
+            g.add_edge(e[0],e[1],vec=[edge_alph[c]])
 
         return(g)
     
@@ -176,7 +176,7 @@ class Graph_Generator:
         e = edges[pos_e]
         c = np.random.randint(len(edge_alph))
         lab = edge_alph[c]
-        g[e[0]][e[1]]['label'] = lab
+        g[e[0]][e[1]]['vec'] = [lab]
         
         return (g)
 
@@ -196,7 +196,7 @@ class Graph_Generator:
         n = np.random.randint(len(graph.nodes()))
         c = np.random.randint(len(node_alph))
         lab = node_alph[c]
-        g.node[n]['label'] = lab
+        g.node[n]['vec'] = [lab]
         
         return (g)
 
@@ -228,9 +228,9 @@ class Graph_Generator:
                     e1_lab = g[e1[0]][e1[1]]
                     e2_lab = g[e2[0]][e2[1]]
                     g_new.remove_edge(e1[0],e1[1])
-                    g_new.add_edge(e1[0],e2[1],label=e1_lab['label'])
+                    g_new.add_edge(e1[0],e2[1],vec=e1_lab['vec'])
                     g_new.remove_edge(e2[0],e2[1])
-                    g_new.add_edge(e2[0],e1[1],label=e2_lab['label'])
+                    g_new.add_edge(e2[0],e1[1],vec=e2_lab['vec'])
                     c = c+1
 
                     if (c == len(g.edges())):
@@ -255,7 +255,7 @@ class Graph_Generator:
         c=graphs[-class_size:]
         g = b + c
         warnings.filterwarnings('ignore')
-        display.draw_graph_set(g,n_graphs_per_line=n_graphs_per_line,edge_label='label')
+        display.draw_graph_set(g,n_graphs_per_line=n_graphs_per_line,edge_label='vec')
     
     
     

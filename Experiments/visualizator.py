@@ -1,6 +1,7 @@
 
 import numpy as np
 from tabulate import tabulate
+from scipy.stats import rankdata
 import matplotlib.pyplot as plt
 class Visualizator:
     '''Plot the results of an embedding
@@ -49,7 +50,52 @@ class Visualizator:
         self.precision[classifier_number][dimension] = self.precision[classifier_number][dimension] + pre
         self.recall[classifier_number][dimension] = self.recall[classifier_number][dimension] + rec
         self.f1[classifier_number][dimension] = self.f1[classifier_number][dimension] + f
-       
+    
+    def rank(self,metric="accuracy",return_matrix=False):
+        
+        dim = self.dim
+        res = []
+        res = [[] for x in dim]
+        if metric == "accuracy":
+            for j in range(0,len(res)):
+                for i in range(0,len(self.accuracy)):
+                    res[j].append(1-np.mean(self.accuracy[i][j]))
+        if metric == "precision":
+            for j in range(0,len(res)):
+                for i in range(0,len(self.precision)):
+                    res[j].append(1-np.mean(self.precision[i][j]))
+        if metric == "recall":
+            for j in range(0,len(res)):
+                for i in range(0,len(self.recall)):
+                    res[j].append(1-np.mean(self.recall[i][j]))
+        if metric == "f1":
+            for j in range(0,len(res)):
+                for i in range(0,len(self.f1)):
+                    res[j].append(1-np.mean(self.f1[i][j]))
+
+                
+        for i in range(0,len(res)):
+            res[i] = rankdata(res[i])
+
+
+        models_name = self.models_names
+        rank_model = [[i] for i in models_name]
+
+        res_transpose = list(map(list, zip(*res)))
+        for i in range(0,len(rank_model)):
+            for j in res_transpose[i]:
+                rank_model[i].append(j)
+            rank_model[i].append(np.mean(res_transpose[i]))
+            
+
+        
+
+        if return_matrix == True:
+            return rank_model
+        else:
+            dims = dim.copy()
+            dims.append("mean")
+            print (tabulate(rank_model, headers=dims))
 
         
     def mean_percentile(self, metric):
@@ -74,9 +120,31 @@ class Visualizator:
         per_75 = np.around(per_75, decimals=3) 
 
         return (mean_res, per_25, per_75)
+
+
+
+    def mean_std(self, metric, std):
+        '''Compute mean and percentile of an array of metrics.
+        
+        Args:
+            metric ([float]): an Array of metrics computed in k fold validations
+            
+        Return:
+            (mean_res, pre_25, per_75) mean of metrics, percentile 25 and percentile 75
+        '''
+        mean_res = []
+        for i in metric:
+            mean_res.append(np.mean(i))
+            if (std == True):
+                mean_res.append(np.std(i))
+
+        mean_res = np.around(mean_res, decimals=3) 
+
+        return (mean_res)
+        
         
     
-    def summarize(self):
+    def summary_old(self):
                 
         print("Dimensions: ",self.dim)
         print("")
@@ -100,7 +168,36 @@ class Visualizator:
             print (tabulate([acc_mean,pre_mean,rec_mean,f1_mean], headers=self.dim))
       
 
+    def summary(self,metric='accuracy',std=True,return_matrix=False):
+        if (metric == "accuracy"):
+            metric = self.accuracy
+        elif(metric == "precision"):
+            metric = self.precision
+        elif(metric == "recall"):
+            metric = self.recall
+        else:
+            metric = self.f1
 
+        means= []
+        for i in range(0,self.n_classifiers):
+            
+            acc_mean = self.mean_std(metric[i],std=std)
+            acc_mean = list(acc_mean)
+            acc_mean = acc_mean + [np.around(np.mean(acc_mean), decimals=3)]
+            acc_mean = [self.models_names[i]] + acc_mean
+            
+            means.append(acc_mean)
+
+        dims = []
+        for i in self.dim:
+            dims.append(i)
+            if (std == True):
+                dims.append("STD")
+    
+        if return_matrix == False:
+            print (tabulate(means, headers=list(dims)+['mean']))
+        else:
+            return(means)
     
     
     

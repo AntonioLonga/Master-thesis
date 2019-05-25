@@ -4,7 +4,7 @@ from spektral.utils import conversion
 from keras.utils import to_categorical
 import os
 
-def load_data(folder_name, output_type="networkx",one_hot=False):
+def load_data(folder_name):
     '''Import a set of graphs.
     
     The data comes from https://ls11-www.cs.tu-dortmund.de/staff/morris/graphkerneldatasets.
@@ -71,21 +71,11 @@ def load_data(folder_name, output_type="networkx",one_hot=False):
        
     graphs = add_info_to_nodes(graphs)
     
-    if (one_hot == True):
-        labels = to_categorical(labels)
+    
+    return (graphs, np.array(labels))
 
-    if (output_type == "networkx"):
-        return (graphs, labels)
-
-    if (output_type == "numpy"):
-
-        adjs =conversion.nx_to_adj(graphs)
-        nodes_f = conversion.nx_to_node_features(graphs, keys=['vec'])
-        edges_f = conversion.nx_to_edge_features(graphs, keys=['vec']) 
-
-        return (adjs,nodes_f,edges_f,labels)
-    _
-
+   
+    
 def add_info_to_nodes(graphs):
     '''add label, degree and clustering coefficient to nodes attributes
     
@@ -99,14 +89,12 @@ def add_info_to_nodes(graphs):
     '''   
     for g in graphs:
         for i in g.nodes():
-            degree = g.degree(i)
-            clust_coeff = nx.clustering(g,i)
             label = int(g.nodes[i]['label'])
             vec = g.nodes[i]['vec'] 
             if (vec == ''):
-                g.nodes[i]['vec'] = [label,degree,clust_coeff]
+                g.nodes[i]['vec'] = [label]
             else:
-                g.nodes[i]['vec'] = vec + [label,degree,clust_coeff]
+                g.nodes[i]['vec'] = vec + [label]
    
     return(graphs)
 
@@ -280,6 +268,11 @@ def explore_folder(folder_name):
             t = 0
         graph_lab.append(t)
     file.close()
+
+    #### start from 0 in labeling
+    min_label = np.min(graph_lab)
+    if (min_label > 0):
+        graph_lab = graph_lab - min_label
 
     ### import file, if they does not exist return n/m elements of ""
     node_att = import_node_attributes(nodeAtt_path,n)

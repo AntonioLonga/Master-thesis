@@ -39,15 +39,19 @@ class Evaluator:
 
         classif = self.classifier
 
+
+        #### capire beene che tipo id "average "
+
+        #scoring = metrics.make_scorer(metrics.f1_score, average='micro')))
         
         accuracy_train = list(cross_val_score(classif ,X,y, cv=n_folds, 
                                          scoring = metrics.make_scorer(metrics.accuracy_score)))
         precision_train = list(cross_val_score(classif ,X,y, cv=n_folds, 
-                                          scoring = metrics.make_scorer(metrics.precision_score)))
+                                          scoring = metrics.make_scorer(metrics.precision_score, average='weighted')))
         recall_train = list(cross_val_score(classif ,X,y, cv=n_folds, 
-                                       scoring = metrics.make_scorer(metrics.recall_score)))
+                                       scoring = metrics.make_scorer(metrics.recall_score, average='weighted')))
         f1_train = list(cross_val_score(classif ,X,y, cv=n_folds, 
-                                   scoring = metrics.make_scorer(metrics.f1_score)))
-        
+                                   scoring = metrics.make_scorer(metrics.f1_score, average='weighted')))
+
         return([accuracy_train,precision_train,recall_train,f1_train])
         
