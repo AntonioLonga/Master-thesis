@@ -2,7 +2,8 @@ import utilities
 from spektral.utils.convolution import localpooling_filter
 import numpy as np
 from keras.callbacks import EarlyStopping
-
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import Normalizer
 
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
@@ -133,13 +134,14 @@ class Transformer:
    
 class Transformer_GNN:
 
-    def __init__(self, original_model,new_model,batch_size,validation_split,epochs,verbose=0,plot=False):
+    def __init__(self, original_model,new_model,batch_size,validation_split,epochs,patience,verbose=0,plot=False):
         self.original_model = original_model
         self.new_model = new_model
         self.batch_size = batch_size
         self.validation_split = validation_split
         self.epochs = epochs
         self.verbose = verbose
+        self.patience = patience
         
         self.initial_weights = original_model.get_weights()
 
@@ -158,7 +160,7 @@ class Transformer_GNN:
         adj, x, _ = utilities.from_nx_to_adj(graphs)
         fltr = localpooling_filter(adj)
         y_one_hot = utilities.from_np_to_one_hot(y)
-        es_callback = EarlyStopping(monitor='val_loss', patience=20)
+        es_callback = EarlyStopping(monitor='val_loss', patience=self.patience)
         
         ### the dataset is splitted, and the input of the model
         ### acceps max_n_nodes as impout, so if needed add a padding
@@ -239,7 +241,7 @@ class Transformer_GNN:
     
 class Transformer_autoencoder:
     
-    def __init__(self, autoencoders, encoders ,batch_size,validation_split,epochs,verbose=0,scaler=None,dim=[2,3,5],plot=False):
+    def __init__(self, autoencoders, encoders ,batch_size,validation_split,epochs,patience,verbose=0,scaler=None,dim=[2,3,5],plot=False):
         
         self.autoencoders = autoencoders
         self.encoders = encoders
@@ -248,6 +250,7 @@ class Transformer_autoencoder:
         self.validation_split = validation_split
         self.epochs = epochs
         self.verbose = verbose
+        self.patience = patience
         
         if (scaler != None):
             self.scaler = scaler
@@ -280,7 +283,7 @@ class Transformer_autoencoder:
             x = self.scaler.fit(x).transform(x)
             
         # callback
-        es_callback = EarlyStopping(monitor='val_loss', patience=50)
+        es_callback = EarlyStopping(monitor='val_loss', patience=self.patience)
         
         
         model_history = self.autoencoders[self.selected_model].fit(x,x,
@@ -289,6 +292,8 @@ class Transformer_autoencoder:
                                                     epochs=self.epochs,
                                                     verbose=self.verbose,
                                                     callbacks=[es_callback])
+
+        print(es_callback.stopped_epoch)
         
         if (self.plot == True):
             tmp_print(model_history)
@@ -305,7 +310,61 @@ class Transformer_autoencoder:
         
         return(self.encoders[self.selected_model].predict(x))
     
+class Transformer_RF_umap:
 
+    def __init__(self, estimator, has_fit=True):
+        self.has_fit = has_fit
+        self.estimator = estimator
+        self.regr_rf = RandomForestRegressor(n_estimators=500, max_depth=30, random_state=2)
+
+    def fit(self,X,y,node_feature=None):
+        
+        if (self.has_fit == True): 
+            res_uma_train = self.estimator.fit(X,y).transform(X)
+            regr_rf = self.regr_rf.fit(X,res_uma_train)
+            
+        return(self)
+    
+    
+    def transform(self,X):
+        y_pred = self.regr_rf.predict(X)
+        return(y_pred)
+
+
+class Transformer_DNN_umap:
+
+    def __init__(self, dnn, uma,epochs, batch_size=5, verbose=0, validation_split=0.2,callbacks=[None],has_fit=True):
+        self.has_fit = has_fit
+        self.uma = uma
+        self.dnn = dnn
+        
+        self.scaler = Preprocessing_scaler([0, 1])
+        self.normalizer = Normalizer(copy=True, norm='l2')  
+        
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.verbose = verbose
+        self.validation_split = validation_split
+        self.callbacks = callbacks
+        
+    def fit(self,X,y,node_feature=None):
+            
+        if (self.has_fit == True): 
+            res_uma_train = self.uma.fit(X,y).transform(X)
+            scal_res_uma = self.scaler.fit(res_uma_train).transform(res_uma_train)
+            norm_res_uma = self.normalizer.fit(scal_res_uma).transform(scal_res_uma)
+            
+            self.dnn.fit(X, norm_res_uma,
+                         epochs = self.epochs,
+                         batch_size = self.batch_size,
+                         verbose = self.verbose,
+                         validation_split = self.validation_split)
+        return(self)
+    
+    
+    def transform(self,X):
+        y_pred = self.dnn.predict(X)
+        return(y_pred)
 
 
 class Preprocessing_scaler:
@@ -327,7 +386,7 @@ class Preprocessing_scaler:
 
 class Transformer_GNN_embedder:
 
-    def __init__(self, original_models,new_models,batch_size,validation_split,epochs,verbose=0,dim=[2,3,5],plot=False):
+    def __init__(self, original_models,new_models,batch_size,validation_split,epochs,patience,verbose=0,dim=[2,3,5],plot=False):
         
         self.original_models = original_models
         self.new_models = new_models
@@ -336,6 +395,7 @@ class Transformer_GNN_embedder:
         self.validation_split = validation_split
         self.epochs = epochs
         self.verbose = verbose
+        self.patience = patience
         
         
         self.dim = dim 
@@ -371,7 +431,7 @@ class Transformer_GNN_embedder:
         y_one_hot = utilities.from_np_to_one_hot(y)
         
         # callback
-        es_callback = EarlyStopping(monitor='val_loss', patience=20)
+        es_callback = EarlyStopping(monitor='val_loss', patience=self.patience)
         
         
         ### the dataset is splitted, and the input of the model
