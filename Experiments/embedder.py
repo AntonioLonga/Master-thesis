@@ -40,24 +40,19 @@ class Embedder:
             (self)
         '''
         X_res = X
-    
-        
+           
         for estimator in self.estimators[:-1]:
             X_res = estimator.fit(X_res,y).transform(X_res)
-            
-        
+    
         self.estimators[-1].fit(X_res,y)
         return(self)
 
     def reset_state(self):
         
-
         for estimator in self.estimators:
-
             estimator.reset_state()
 
                 
-
     def transform(self,graphs):
         '''Transform set of graphs in points in a space.
               
@@ -89,8 +84,7 @@ class Transformer:
     def __init__(self, estimator, has_fit=True):
         self.has_fit = has_fit
         self.estimator = estimator
-
-        
+ 
     
     def fit(self,X,y,node_feature=None):
         '''Fit the model usign X and y
@@ -108,14 +102,11 @@ class Transformer:
             
         return(self)
 
-   
-
     def reset_state(self):
         if ("reset_state" in dir(self.estimator)):
             self.estimator.reset_state()
         return None
-    
-    
+       
     def transform(self,X):
         '''Transform X in pointses_patiencece.
               
@@ -125,34 +116,27 @@ class Transformer:
         Returns:
             (X_pred) : predicted targhet
         '''
-
-
-
         y_pred = self.estimator.transform(X)
         return(y_pred)
         
-   
-class Transformer_GNN:
 
-    def __init__(self, original_model,new_model,batch_size,validation_split,epochs,patience,verbose=0,plot=False):
-        self.original_model = original_model
-        self.new_model = new_model
+class Kernel_GNN:
+
+    def __init__(self, classificator,embedder,batch_size,validation_split,epochs,patience,verbose=0):
+        self.classificator = classificator
+        self.embedder = embedder
         self.batch_size = batch_size
         self.validation_split = validation_split
         self.epochs = epochs
         self.verbose = verbose
         self.patience = patience
         
-        self.initial_weights = original_model.get_weights()
-
-        ####
-        self.plot = plot
-
+        self.initial_weights = classificator.get_weights()
 
         
     def reset_state(self):
-        self.original_model.set_weights(self.initial_weights)
-        self.new_model.set_weights(self.initial_weights)
+        self.classificator.set_weights(self.initial_weights)
+        self.embedder.set_weights(self.initial_weights)
         
         
     def fit(self,graphs,y):
@@ -160,29 +144,18 @@ class Transformer_GNN:
         adj, x, _ = utilities.from_nx_to_adj(graphs)
         fltr = localpooling_filter(adj)
         y_one_hot = utilities.from_np_to_one_hot(y)
-        es_callback = EarlyStopping(monitor='val_loss', patience=self.patience)
+        
+        
+        es = EarlyStopping(monitor='val_loss', patience=self.patience)
         
         ### the dataset is splitted, and the input of the model
         ### acceps max_n_nodes as impout, so if needed add a padding
         fltr, x = self.add_padding(fltr,x)
 
-        history = self.original_model.fit([x, fltr],y_one_hot,
-                                batch_size=self.batch_size,
-                                validation_split=self.validation_split,
-                                epochs=self.epochs,
-                                callbacks=[es_callback],
-                                verbose=self.verbose)
-        
-        if (self.plot == True):
-            tmp_print(history)
-        
-        
-        print(es_callback.stopped_epoch)
-        
-        ### get the weights
-        self.original_weights = self.original_model.get_weights()
-        ### set the weights to the new models
-        self.new_model.set_weights(self.original_weights)
+        history = self.classificator.fit([x, fltr],y_one_hot,
+                                        epochs=self.epochs,
+                                        verbose=self.verbose) 
+        print("Stopped epoch: ",es.stopped_epoch)
 
 
         return(self)
@@ -192,7 +165,7 @@ class Transformer_GNN:
         adj, x, _ = utilities.from_nx_to_adj(graphs)
         fltr = localpooling_filter(adj)
         fltr, x = self.add_padding(fltr,x)
-        y_pred = self.new_model.predict([x,fltr])
+        y_pred = self.embedder.predict([x,fltr])
 
         
         return(y_pred)
@@ -200,7 +173,7 @@ class Transformer_GNN:
 
     def add_padding(self,fltr,x):
         
-        input_model = self.original_model.get_input_shape_at(0)
+        input_model = self.classificator.get_input_shape_at(0)
         #### pad fltr
         new_fltr = []
         if (not fltr.shape[1] == input_model[1][1]):
@@ -238,68 +211,51 @@ class Transformer_GNN:
 
         return(new_fltr, new_x)
 
-    
-class Transformer_autoencoder:
-    
-    def __init__(self, autoencoders, encoders ,batch_size,validation_split,epochs,patience,verbose=0,scaler=None,dim=[2,3,5],plot=False):
+
+class Transformer_sup_autoencoder:
+    def __init__(self, autoencoder, encoder ,batch_size,validation_split,epochs,callbacks,verbose=0,normal=None,scaler=None):
         
-        self.autoencoders = autoencoders
-        self.encoders = encoders
+        self.autoencoder = autoencoder
+        self.encoder = encoder
         
         self.batch_size = batch_size
         self.validation_split = validation_split
         self.epochs = epochs
         self.verbose = verbose
-        self.patience = patience
+        self.callbacks = callbacks
         
-        if (scaler != None):
-            self.scaler = scaler
-        
-        self.plot = plot
-        
-        self.dim = dim
-        self.selected_model = 0
-        self.n_components = 0
-        
-        self.origina_weights = []
-        
-        for auto in autoencoders:
-            self.origina_weights.append(auto.get_weights())
-        
+        self.scaler = scaler
+        self.normal = normal
+      
+        self.auto_weights = self.autoencoder.get_weights()
+    
     
     def reset_state(self):
-        for i in range(len(self.autoencoders)):
-            self.autoencoders[i].set_weights(self.origina_weights[i])
+        self.autoencoder.set_weights(self.auto_weights)
+        self.encoder.set_weights(self.auto_weights)
+        
+    def fit(self,x,y):
         
         
-    
-    def fit(self,x,_):
-        
-        self.selected_model = self.dim.index(self.n_components)
-        
+        y_one_hot = utilities.from_np_to_one_hot(y)
         
         ##### preprocessing inpuu
         if (self.scaler != None):
             x = self.scaler.fit(x).transform(x)
-            
-        # callback
-        es_callback = EarlyStopping(monitor='val_loss', patience=self.patience)
+        if (self.normal != None):
+            x = self.normal.fit(x).transform(x)
+                 
         
-        
-        model_history = self.autoencoders[self.selected_model].fit(x,x,
-                                                    batch_size=self.batch_size,
-                                                    validation_split=self.validation_split,
-                                                    epochs=self.epochs,
-                                                    verbose=self.verbose,
-                                                    callbacks=[es_callback])
+        model_history = self.autoencoder.fit(x,
+                                            {'decoder': x, 'classifier': y_one_hot},
+                                            batch_size=self.batch_size,
+                                            validation_split=self.validation_split,
+                                            epochs=self.epochs,
+                                            verbose=self.verbose,
+                                            callbacks=self.callbacks)
 
-        print(es_callback.stopped_epoch)
-        
-        if (self.plot == True):
-            tmp_print(model_history)
-        
-        
-        self.encoders[self.selected_model].set_weights(self.autoencoders[self.selected_model].get_weights())
+                
+        self.encoder.set_weights(self.autoencoder.get_weights())
         
         return(self)
         
@@ -307,8 +263,10 @@ class Transformer_autoencoder:
        
         if (self.scaler != None):
             x = self.scaler.transform(x)
+        if (self.normal != None):
+            x = self.normal.transform(x)
         
-        return(self.encoders[self.selected_model].predict(x))
+        return(self.encoder.predict(x))
     
 class Transformer_RF_umap:
 
