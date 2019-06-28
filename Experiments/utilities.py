@@ -12,6 +12,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 
 from sklearn.utils import shuffle
+from eden.graph import vertex_vectorize
+
+from tabulate import tabulate
+import matplotlib.pyplot as plt
+import matplotlib
+
+
 
 
 '''
@@ -102,7 +109,7 @@ def repeat_n_times(graphs, labels, emb, dim, times,seed=-1,test_size=0.3):
     
 
 
-def from_nx_to_adj(graphs,nf_keys=['vec'],ef_keys=['vec']):
+def from_nx_to_adj(graphs,nf_keys=['vec'],ef_keys=None):
     np_adj =conversion.nx_to_numpy(graphs,nf_keys=nf_keys, ef_keys=ef_keys)
     adjs = np_adj[0]
     nodes_f = np_adj[1]
@@ -120,6 +127,19 @@ def from_one_hot_to_np(labels):
         res.append(np.argmax(label, axis=None, out=None))
         
     return(res)
+
+def vec_vertex(graph):
+    X = vertex_vectorize([graph], complexity=2, nbits=5)
+    x = X[0]
+    x = x.A
+    values = []
+    count = 0
+    for node in graph.nodes():
+        val = x[count]
+        count = count + 1
+        values.append(val)
+
+    return([values])
 
 def degree(graph):
     values = []
@@ -333,3 +353,44 @@ def sub_sampling(graphs,labels,samples_for_class):
     return(res_graphs,res_labels)
 
     
+
+
+def evaluate_emb_train_test(emb_test,y_test,emb_train,y_train,return_value=False):
+    dim = len(emb_test[0])
+    eva = Evaluator(KNeighborsClassifier(n_neighbors = 1))
+    acc_test, _,_,_ = eva.performance_with_kfold(emb_test,y_test)
+    acc_test = "%.3f" % np.mean(acc_test)
+    
+    eva = Evaluator(KNeighborsClassifier(n_neighbors = 1))
+    acc_train, _,_,_ = eva.performance_with_kfold(emb_train,y_train)
+    acc_train = "%.3f" % np.mean(acc_train)
+    
+    if (return_value == True):
+        return(acc_test,acc_train)
+    else:
+        print (tabulate([['K.N.N.  accuracy', acc_test, acc_train]], headers=["DIM: "+str(dim), 'TEST','TRAIN']))
+    
+
+def plot_embedding_2d(embed,graphs,labels,test_size,seed):
+    X_train, X_test, y_train, y_test = train_test_split(graphs, labels, test_size=0.3,random_state=11)
+    res_test = embed.transform(X_test)
+    res_train = embed.transform(X_train)
+    acc_test,acc_train = evaluate_emb_train_test(res_test,y_test,res_train,y_train,return_value=True)
+    
+    
+    colors = ['red','blue']
+    plt.figure(figsize=(10,5))
+    plt.subplot(121)
+    x = res_test[:,0]
+    y = res_test[:,1]
+    plt.title("TEST \nacc: "+str(acc_test))
+    plt.scatter(x,y,s=8,c=y_test,cmap=matplotlib.colors.ListedColormap(colors))
+
+
+    plt.subplot(122)
+    x = res_train[:,0]
+    y = res_train[:,1]
+    plt.title("TRAIN \nacc: "+str(acc_train))
+    plt.scatter(x,y,s=8,c=y_train,cmap=matplotlib.colors.ListedColormap(colors))
+    
+    plt.show()
