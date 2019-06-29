@@ -128,8 +128,12 @@ def from_one_hot_to_np(labels):
         
     return(res)
 
-def vec_vertex(graph):
-    X = vertex_vectorize([graph], complexity=2, nbits=5)
+def vec_vertex(graph,param=None):
+    if(param != None):
+        n_bits = param
+    else:
+        n_bits = 5
+    X = vertex_vectorize([graph], complexity=2, nbits=n_bits)
     x = X[0]
     x = x.A
     values = []
@@ -137,25 +141,25 @@ def vec_vertex(graph):
     for node in graph.nodes():
         val = x[count]
         count = count + 1
-        values.append(val)
+        values.append(list(val[1:]))
 
-    return([values])
+    return([list(values)])
 
-def degree(graph):
+def degree(graph,param=None):
     values = []
     for node in graph.nodes():
         values.append(graph.degree(node))
     
     return ([values])
 
-def clust_coefficient(graph):
+def clust_coefficient(graph,param=None):
     values = []
     for node in graph.nodes():
         values.append(nx.clustering(graph,node))
         
     return ([values])
 
-def local_degree_profile(graph):
+def local_degree_profile(graph,param=None):
     '''Return max,min,mean and std of the degrees among all neighbours of a node.
     '''
     max_degree = []
@@ -174,7 +178,7 @@ def local_degree_profile(graph):
     return([max_degree,min_degree,mean_degree,std_degree])
     
 
-def add_info_to_nodes(graphs,functions):
+def add_info_to_nodes(graphs,functions,param):
     '''applica function a ogni nodo di ogni grafo, e aggiunge il risultato come attributo del nodo.
     ''' 
     if (not type(functions) == list):
@@ -182,12 +186,18 @@ def add_info_to_nodes(graphs,functions):
         
     for function in functions:
         for g in graphs:
-            values = function(g)
+            values = function(g,param)
             for value in values:
                 counter = 0
                 for node in g.nodes():
-                    vec = g.nodes[node]['vec'] 
-                    g.nodes[node]['vec'] = vec + [value[counter]]
+                    vec = g.nodes[node]['vec']
+                    new_vec = vec
+                    if (type(value[counter]) == list):
+                        for elem in value[counter]:
+                            new_vec = new_vec + [elem]
+                    else:
+                        new_vec = new_vec + [value[counter]]
+                    g.nodes[node]['vec'] = new_vec
                     counter = counter + 1
 
     return(graphs)
@@ -372,6 +382,8 @@ def evaluate_emb_train_test(emb_test,y_test,emb_train,y_train,return_value=False
     
 
 def plot_embedding_2d(embed,graphs,labels,test_size,seed):
+
+    print("\n\t",embed.name)
     X_train, X_test, y_train, y_test = train_test_split(graphs, labels, test_size=0.3,random_state=11)
     res_test = embed.transform(X_test)
     res_train = embed.transform(X_train)

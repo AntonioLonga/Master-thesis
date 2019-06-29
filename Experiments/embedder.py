@@ -48,7 +48,7 @@ class Embedder:
         return(self)
 
     def reset_state(self):
-        
+
         for estimator in self.estimators:
             estimator.reset_state()
 
@@ -122,7 +122,7 @@ class Transformer:
 
 class Kernel_GNN:
 
-    def __init__(self, classificator,embedder,batch_size,validation_split,epochs,patience,verbose=0):
+    def __init__(self, classificator,embedder,batch_size,validation_split,epochs,patience,callbacks=None,verbose=0):
         self.classificator = classificator
         self.embedder = embedder
         self.batch_size = batch_size
@@ -133,11 +133,16 @@ class Kernel_GNN:
         
         self.initial_weights = classificator.get_weights()
 
+        self.es = EarlyStopping(monitor='val_loss', patience=self.patience)
+        if (callbacks != None):
+            self.callbacks = [self.es] + callbacks
+        else:
+            self.callbacks = [self.es]
         
     def reset_state(self):
+
         self.classificator.set_weights(self.initial_weights)
         self.embedder.set_weights(self.initial_weights)
-        
         
     def fit(self,graphs,y):
         # Preprocessing
@@ -146,17 +151,18 @@ class Kernel_GNN:
         y_one_hot = utilities.from_np_to_one_hot(y)
         
         
-        es = EarlyStopping(monitor='val_loss', patience=self.patience)
-        
         ### the dataset is splitted, and the input of the model
         ### acceps max_n_nodes as impout, so if needed add a padding
         fltr, x = self.add_padding(fltr,x)
 
         history = self.classificator.fit([x, fltr],y_one_hot,
                                         epochs=self.epochs,
+                                        validation_split=self.validation_split,
+                                        callbacks=self.callbacks,
                                         verbose=self.verbose) 
-        print("Stopped epoch: ",es.stopped_epoch)
+        print("Stopped epoch: ",self.es.stopped_epoch)
 
+        self.embedder.set_weights(self.classificator.get_weights())
 
         return(self)
     
