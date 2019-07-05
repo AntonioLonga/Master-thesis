@@ -80,7 +80,6 @@ class Transformer:
                                 For example, Vectorize hasn't fit. 
         
     '''
-
     def __init__(self, estimator, has_fit=True):
         self.has_fit = has_fit
         self.estimator = estimator
@@ -96,8 +95,8 @@ class Transformer:
         Returns:
             (self)
         '''
-        if (self.has_fit == True):
-            
+
+        if (self.has_fit == True):            
             self.estimator.fit(X,y)
             
         return(self)
@@ -228,11 +227,14 @@ class Transformer_sup_autoencoder:
         self.validation_split = validation_split
         self.epochs = epochs
         self.verbose = verbose
-        self.callbacks = callbacks
+        if (callbacks == None):
+            self.callbacks = None
+        else:
+            self.callbacks = callbacks
         
         self.scaler = scaler
         self.normal = normal
-      
+
         self.auto_weights = self.autoencoder.get_weights()
     
     
@@ -297,7 +299,7 @@ class Transformer_RF_umap:
 
 class Transformer_DNN_umap:
 
-    def __init__(self, dnn, uma,epochs, batch_size=5, verbose=0, validation_split=0.2,callbacks=[None],has_fit=True):
+    def __init__(self, dnn, uma,epochs, batch_size=5, verbose=0, validation_split=0.2,callbacks=None,has_fit=True):
         self.has_fit = has_fit
         self.uma = uma
         self.dnn = dnn
@@ -322,6 +324,7 @@ class Transformer_DNN_umap:
                          epochs = self.epochs,
                          batch_size = self.batch_size,
                          verbose = self.verbose,
+                         callbacks=self.callbacks,
                          validation_split = self.validation_split)
         return(self)
     

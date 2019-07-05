@@ -6,13 +6,22 @@ import matplotlib.pyplot as plt
 from tabulate import tabulate
 
 
-def summary(name):
+def summary_load(name,pubchem=False):
     print("DATASET: \t "+str(name))
-    graphs,labels = ld.load_data(name)
+    if (pubchem == False):
+        graphs,labels = ld.load_data(name)
+    else:
+        graphs,labels = ld.load_data_pubchem(name)
     summary_graphs_density(graphs,labels)
     summary_number_nodes_edges_in_graphs(graphs)
     summary_graphs_degrees(graphs)
-    
+
+
+def summary(graphs,labels):
+    summary_graphs_density(graphs,labels)
+    summary_number_nodes_edges_in_graphs(graphs)
+    summary_graphs_degrees(graphs)
+
 
 def summary_graphs_density(graphs,labels):
     
