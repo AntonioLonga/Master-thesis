@@ -12,12 +12,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 
 from sklearn.utils import shuffle
-from eden.graph import vertex_vectorize
 
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 import matplotlib
 
+from eden.graph import vertex_vectorize
+from sklearn.decomposition import TruncatedSVD
+from umap import UMAP
+import math
+from scipy.sparse import vstack
 
 
 
@@ -96,10 +100,9 @@ def repeat_n_times(graphs, labels, emb, dim, times,seed=-1,test_size=0.3):
     vis = Visualizator(dim, n_classifiers = n_classifiers, models_names=models_names)
 
     for t in range(0,times):
-        if seed == -1:
+        if (seed == -1):
             X_train, X_test, y_train, y_test = train_test_split(graphs, labels, test_size=test_size)
         else:
-
             X_train, X_test, y_train, y_test = train_test_split(graphs, labels, test_size=test_size,random_state=seed)
         print("\t iteration n:",t+1)
         try_dimensions(dim,emb,vis,X_train,X_test,y_train,y_test)
@@ -128,22 +131,72 @@ def from_one_hot_to_np(labels):
         
     return(res)
 
+
+
+def create_dict_labels(graphs,lab="label"):
+    tmp_set = set()
+    for g in graphs:
+        for n in g.nodes():
+            tmp_set.add(g.nodes[n][lab])
+            
+    dic = {}
+    count = 0
+    for i in tmp_set:
+        dic[i]=count
+        count = count + 1
+    return (dic)
+
 def vec_vertex(graph,param=None):
     if(param != None):
         n_bits = param
     else:
         n_bits = 5
     X = vertex_vectorize([graph], complexity=2, nbits=n_bits)
-    x = X[0]
-    x = x.A
-    values = []
-    count = 0
-    for node in graph.nodes():
-        val = x[count]
-        count = count + 1
-        values.append(list(val[1:]))
-
+    x = X[0].A
+    
+    values = [list(xx[1:]) for xx in x]
     return([list(values)])
+
+
+def vertex_vect_PCA(graphs,n_bits,pca_n_components,complexity=2):
+    X = vertex_vectorize(graphs, complexity=complexity, nbits=n_bits)
+    X = vstack(X)
+    X = X.A
+
+    pca = TruncatedSVD(n_components=pca_n_components)
+    X_res = pca.fit_transform(X)
+
+    counter = 0
+    for g in graphs:
+        for node in g.nodes():
+            vec = g.nodes[node]['vec']
+            new_vec = vec
+            for i in X_res[counter]:
+                new_vec.append(i)
+                
+            g.nodes[node]['vec'] = new_vec
+            counter = counter + 1
+
+    return(graphs)
+
+'''
+def vec_vertex_umap(graph,param=None):
+    if(param != None):
+        n_bits = param
+    else:
+        n_bits = 5
+    X = vertex_vectorize([graph], complexity=2, nbits=n_bits)
+    if (math.pow(2,n_bits) > 300):
+        print("use UMAP")
+        uma = UMAP(n_components=100)
+        xx = X[0].A
+        x = uma.fit(xx).transform(xx)
+    else:
+        x = X[0].A
+        
+    values = [list(xx[1:]) for xx in x]
+    return([list(values)])
+'''
 
 def degree(graph,param=None):
     values = []
@@ -317,7 +370,12 @@ def find_shapes(graphs):
     ### length feature vector
     index = list(graphs[0].node())[0]
     
-    return(max_number_of_nodes, len(graphs[0].node()[index]['vec']))
+    vec = graphs[0].node()[index]['vec']
+    if (type(vec)== list):
+        return(max_number_of_nodes, len(vec))
+    else:
+        return(max_number_of_nodes, 1)
+
 
 
 
@@ -384,25 +442,27 @@ def evaluate_emb_train_test(emb_test,y_test,emb_train,y_train,return_value=False
 def plot_embedding_2d(embed,graphs,labels,test_size,seed):
 
     print("\n\t",embed.name)
-    X_train, X_test, y_train, y_test = train_test_split(graphs, labels, test_size=0.3,random_state=11)
+    X_train, X_test, y_train, y_test = train_test_split(graphs, labels, test_size=test_size,random_state=seed)
     res_test = embed.transform(X_test)
     res_train = embed.transform(X_train)
     acc_test,acc_train = evaluate_emb_train_test(res_test,y_test,res_train,y_train,return_value=True)
     
-    
+    _,[pos_tra,neg_tra] = np.unique(y_train,return_counts=True)
+    _,[pos_tes,neg_tes] = np.unique(y_test,return_counts=True)
+
     colors = ['red','blue']
     plt.figure(figsize=(10,5))
     plt.subplot(121)
     x = res_test[:,0]
     y = res_test[:,1]
-    plt.title("TEST \nacc: "+str(acc_test))
+    plt.title("TEST acc: "+str(acc_test)+"\nPos: "+str(pos_tes)+" Neg "+str(neg_tes)+"\nTOT: "+str(len(y_test)))
     plt.scatter(x,y,s=8,c=y_test,cmap=matplotlib.colors.ListedColormap(colors))
 
 
     plt.subplot(122)
     x = res_train[:,0]
     y = res_train[:,1]
-    plt.title("TRAIN \nacc: "+str(acc_train))
+    plt.title("TRAIN acc: "+str(acc_train)+"\nPos: "+str(pos_tra)+" Neg "+str(neg_tra)+"\nTOT: "+str(len(y_train)))
     plt.scatter(x,y,s=8,c=y_train,cmap=matplotlib.colors.ListedColormap(colors))
     
     plt.show()

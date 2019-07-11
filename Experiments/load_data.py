@@ -3,6 +3,35 @@ import networkx as nx
 from spektral.utils import conversion
 from keras.utils import to_categorical
 import os
+import utilities as ut
+
+
+def load_data_pubchem(path):
+    
+    graphs = nx.read_gpickle(path+'/'+'graphs.gpickle')    
+    in_labels = list(np.load(path+'/'+'labels.npy'))
+    dic = ut.create_dict_labels(graphs)
+    # add int(label) in vec
+    for g in graphs:
+        for n in g.nodes():
+            if 'vec' in g.nodes()[n].keys():
+                
+                lab = g.nodes()[n]['label']
+                vec = g.nodes()[n]['vec']
+                new_vec = vec
+                new_vec.append(dic[lab])
+                g.nodes()[n]['vec'] = new_vec
+            else:
+                lab = g.nodes()[n]['label']
+                g.nodes()[n]["vec"] = [dic[lab]]
+    
+    labels = []
+    for i in in_labels:
+        labels.append(int(i))
+    
+    labels = np.array(labels)
+    return (graphs,labels)
+
 
 def load_data(folder_name):
     '''Import a set of graphs.
@@ -19,7 +48,7 @@ def load_data(folder_name):
     
     '''
     
-        
+
     path_files = os.path.join(os.getcwd(), folder_name)
     A_path = os.path.join(path_files,(folder_name + '_A.txt'))
     graphIndicator_path = os.path.join(path_files,(folder_name + "_graph_indicator.txt"))
@@ -90,6 +119,7 @@ def add_info_to_nodes(graphs):
     for g in graphs:
         for i in g.nodes():
             label = int(g.nodes[i]['label'])
+            #label = g.nodes[i]['label']
             vec = g.nodes[i]['vec'] 
             if (vec == ''):
                 g.nodes[i]['vec'] = [label]
